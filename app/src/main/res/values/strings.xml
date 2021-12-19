@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Santa Reporter</string>
+    <string name="send_to_santa">Send to Santa</string>
+    <string name="add_child">Add Kid</string>
+    <string name="add_child_description">Add the child that should be on Santa\'s list</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="save">Save</string>
+    <string name="add_child_hint">Name</string>
+    <string name="name">Name</string>
+</resources>
