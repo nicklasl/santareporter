@@ -178,7 +178,7 @@ private fun Background() {
         contentDescription = "Background",
         modifier = Modifier.fillMaxSize(),
         alignment = Alignment.Center,
-        contentScale = ContentScale.Fit,
+        contentScale = ContentScale.FillBounds,
         alpha = 0.5f
     )
 }
