@@ -48,12 +48,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Surface() {
                         Background()
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
                         ) {
-                            Heading()
-                            vm.children.observeAsState().value?.forEach {
-                                ChildRow(it, vm)
+                            Column(modifier = Modifier.align(Alignment.Center)) {
+                                Heading()
+                                vm.children.observeAsState().value?.forEach {
+                                    ChildRow(it, vm)
+                                }
                             }
                         }
                     }
@@ -65,7 +67,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ChildRow(child: Child, vm: MainVM) {
-
     Column(modifier = Modifier.padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp)) {
         var sliderPosition by remember { mutableStateOf(child.rating.toFloat()) }
 
@@ -192,7 +193,7 @@ fun Heading() {
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 6.dp, end = 6.dp, top = 32.dp, bottom = 24.dp)
+            .padding(start = 6.dp, end = 6.dp, bottom = 24.dp)
     )
 }
 
@@ -201,12 +202,14 @@ fun Heading() {
 fun DefaultPreview() {
     SantaReporterTheme {
         Background()
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Heading()
-            ChildRow(child = Child("Child1", 40), vm = mockVM)
-            ChildRow(child = Child("Child2", 80), vm = mockVM)
+            Column(modifier = Modifier.align(Alignment.Center)) {
+                Heading()
+                ChildRow(child = Child("Child1", 40), vm = mockVM)
+                ChildRow(child = Child("Child2", 80), vm = mockVM)
+            }
         }
     }
 }
