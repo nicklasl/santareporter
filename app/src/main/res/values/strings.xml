@@ -7,4 +7,6 @@
     <string name="save">Save</string>
     <string name="add_child_hint">Name</string>
     <string name="name">Name</string>
+    <string name="naughty">😈 Naughty</string>
+    <string name="nice">Nice 😇</string>
 </resources>

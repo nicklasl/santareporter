@@ -1,37 +1,28 @@
 package nu.nldv.santareporter.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
 import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.graphics.Color.Companion.White
 
 private val DarkColorPalette = darkColors(
     primary = ChristmasRed,
     primaryVariant = Redish,
-    secondary = ChristmasGreen
-)
-
-private val LightColorPalette = lightColors(
-    primary = ChristmasRed,
-    primaryVariant = Redish,
-    secondary = ChristmasGreen
+    secondary = ChristmasGreen,
+    background = Black,
+    onPrimary = White,
+    onSecondary = White,
+    onBackground = White,
+    onSurface = White
 )
 
 @Composable
 fun SantaReporterTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable() () -> Unit
 ) {
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
-    }
     MaterialTheme(
-        colors = colors,
+        colors = DarkColorPalette,
         typography = Typography,
         shapes = Shapes,
         content = content

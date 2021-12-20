@@ -10,7 +10,19 @@ import androidx.lifecycle.MutableLiveData
 const val SHARED_PREFS = "kids"
 const val CHILDREN = "CHILDREN"
 
-class MainViewModel(app: Application) : AndroidViewModel(app) {
+interface MainVM {
+
+    val addDialogOpen: LiveData<Boolean>
+    val children: LiveData<List<Child>>
+    val snackBar: LiveData<SnackbarMessage?>
+    fun sendToSanta()
+    fun addChildDialog()
+    fun dismissAddDialog()
+    fun saveAddDialog(name: String)
+    fun updateRating(child: Child, rating: Float)
+}
+
+class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
 
     private val sharedPrefs by lazy {
         (getApplication() as SantaApp).getSharedPreferences(SHARED_PREFS, MODE_PRIVATE)
@@ -18,33 +30,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
 
     private val _snackBar = MutableLiveData<SnackbarMessage?>()
-    val snackBar: LiveData<SnackbarMessage?> get() = _snackBar
+    override val snackBar: LiveData<SnackbarMessage?> get() = _snackBar
 
     private val _children = MutableLiveData<List<Child>>(mutableListOf())
-    val children: LiveData<List<Child>> get() = _children
+    override val children: LiveData<List<Child>> get() = _children
 
     private val _addDialogOpen = MutableLiveData(false)
-    val addDialogOpen: LiveData<Boolean> get() = _addDialogOpen
+    override val addDialogOpen: LiveData<Boolean> get() = _addDialogOpen
 
     init {
         load()
     }
 
-    fun sendToSanta() {
+    override fun sendToSanta() {
         Log.d("MainViewModel", "sendToSanta()")
     }
 
-    fun addChildDialog() {
+    override fun addChildDialog() {
         Log.d("MainViewModel", "addChildDialog()")
         _addDialogOpen.postValue(true)
     }
 
-    fun dismissAddDialog() {
+    override fun dismissAddDialog() {
         Log.d("MainViewModel", "dismissAddDialog()")
         _addDialogOpen.postValue(false)
     }
 
-    fun saveAddDialog(name: String) {
+    override fun saveAddDialog(name: String) {
         Log.d("MainViewModel", "saveAddDialog() with $name")
         val newChild = Child(name.trim())
         val currentList = children.value ?: listOf()
@@ -52,10 +64,26 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             snack(SnackbarMessage.Duplicate)
         } else {
             val newList = currentList.plus(newChild)
-            _children.postValue(newList)
+            _children.postValue(newList.sortedBy { it.name })
             _addDialogOpen.postValue(false)
             save(newList)
         }
+    }
+
+    override fun updateRating(child: Child, rating: Float) {
+        Log.d("MainViewModel", "updateRating() with ${child.name} and $rating")
+        _children.value?.find { it.name == child.name }?.let {
+            it.rating = rating.toInt()
+        }
+        _children.postValue(_children.value?.sortedBy { it.name })
+    }
+
+    override fun onCleared() {
+        Log.d("MainViewModel", "onCleared()")
+        children.value?.let {
+            save(it)
+        }
+        super.onCleared()
     }
 
     private fun snack(msg: SnackbarMessage) {
@@ -72,7 +100,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val list = sharedPrefs.getStringSet(CHILDREN, emptySet())
             ?.map { Child.fromSerialized(it) }?.toList()
             ?: listOf()
-        _children.postValue(list)
+        _children.postValue(list.sortedBy { it.name })
     }
 
 }
