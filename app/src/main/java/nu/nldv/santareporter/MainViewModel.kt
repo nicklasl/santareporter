@@ -6,8 +6,6 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
 
 const val SHARED_PREFS = "kids"
 const val CHILDREN = "CHILDREN"
@@ -17,6 +15,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val sharedPrefs by lazy {
         (getApplication() as SantaApp).getSharedPreferences(SHARED_PREFS, MODE_PRIVATE)
     }
+
+
+    private val _snackBar = MutableLiveData<SnackbarMessage?>()
+    val snackBar: LiveData<SnackbarMessage?> get() = _snackBar
 
     private val _children = MutableLiveData<List<Child>>(mutableListOf())
     val children: LiveData<List<Child>> get() = _children
@@ -44,26 +46,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveAddDialog(name: String) {
         Log.d("MainViewModel", "saveAddDialog() with $name")
-        _addDialogOpen.postValue(false)
-        val new = Child(name.trim())
-        _children.postValue(children.value?.plus(new))
-        save()
-        load()
+        val newChild = Child(name.trim())
+        val currentList = children.value ?: listOf()
+        if (currentList.any { it.name == newChild.name }) {
+            snack(SnackbarMessage.Duplicate)
+        } else {
+            val newList = currentList.plus(newChild)
+            _children.postValue(newList)
+            _addDialogOpen.postValue(false)
+            save(newList)
+        }
     }
 
-    private fun save() {
-        val serialized = children.value?.map { "${it.name}||${it.rating}" }?.toSet()
+    private fun snack(msg: SnackbarMessage) {
+        Log.d("MainViewModel", "snack() with $msg")
+        _snackBar.postValue(msg)
+    }
+
+    private fun save(list: List<Child>) {
+        val serialized = list.map { it.serialized() }.toSet()
         sharedPrefs.edit().putStringSet(CHILDREN, serialized).apply()
     }
 
     private fun load() {
-        _children.postValue(
-            sharedPrefs.getStringSet(CHILDREN, emptySet())?.map {
-                val (name, rating) = it.split("||")
-                Child(name, rating.toInt())
-            }
-        )
+        val list = sharedPrefs.getStringSet(CHILDREN, emptySet())
+            ?.map { Child.fromSerialized(it) }?.toList()
+            ?: listOf()
+        _children.postValue(list)
     }
 
-    val name = "Android"
 }
