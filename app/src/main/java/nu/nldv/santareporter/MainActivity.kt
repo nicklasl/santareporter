@@ -1,36 +1,42 @@
 package nu.nldv.santareporter
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Send
-//import androidx.compose.runtime.Composable
-//import androidx.compose.runtime.getValue
-//import androidx.compose.runtime.livedata.observeAsState
-//import androidx.compose.runtime.mutableStateOf
-//import androidx.compose.runtime.remember
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.flowWithLifecycle
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import nu.nldv.santareporter.ui.theme.SantaReporterTheme
 import nu.nldv.santareporter.ui.theme.Typography
+import java.util.logging.Logger
 
 class MainActivity : ComponentActivity() {
 
@@ -39,8 +45,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+
+            val scaffoldState = rememberScaffoldState()
+
+            val lifecycleOwner = LocalLifecycleOwner.current
+
+            val eventsFlowLifecycleAware = remember(vm.eventsFlow, lifecycleOwner) {
+                vm.eventsFlow.flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            }
+//            val snackbarHostState = remember { vm.snackbarHostState }
+            eventsFlowLifecycleAware.collectAsState(initial = Event.NoState)
+            LaunchedEffect(scaffoldState.snackbarHostState) {
+                eventsFlowLifecycleAware.collectAsState().onEach {
+                    when(it) {
+                        Event.CloseAddDialog -> Log.d("MainActivity", "eventsFlow: Event.CloseAddDialog")
+                        Event.DismissSnackbar -> TODO()
+                        Event.OpenAddDialog -> Log.d("MainActivity", "eventsFlow: Event.CloseAddDialog")
+                        is Event.ShowSnackbar -> ShowSnack(scaffoldState, it)
+                    }
+                }
+            }
+
             SantaReporterTheme {
                 Scaffold(
+                    scaffoldState = scaffoldState,
+//                    snackbarHost = { state -> SnackyBarHost(state) },
                     floatingActionButton = { Fab(vm) },
                     floatingActionButtonPosition = FabPosition.End,
                     isFloatingActionButtonDocked = true,
@@ -62,6 +91,47 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+}
+@Composable
+private fun ShowSnack(scaffoldState: ScaffoldState, event: Event.ShowSnackbar) {
+    val text: String = when (event.msg) {
+        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
+        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
+    }
+    val actionLabel = stringResource(id = R.string.ok)
+
+    scaffoldState.snackbarHostState.showSnackbar(text, actionLabel, SnackbarDuration.Short)
+}
+
+@Composable
+private fun SnackyBarHost(state: SnackbarHostState) {
+    SnackbarHost(state) { data ->
+        data
+        Snackbar(
+            modifier = Modifier.border(2.dp, MaterialTheme.colors.secondary),
+            snackbarData = data
+        )
+    }
+}
+
+@Composable
+private fun Snacky(modifier: Modifier, vm: MainVM, message: SnackbarMessage) {
+    val text: String = when (message) {
+        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
+        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
+    }
+
+    Snackbar(
+        modifier = modifier,
+        action = {
+            Button(onClick = { vm.dismissSnack() }) {
+                Text(stringResource(id = R.string.ok))
+            }
+        }
+    ) {
+        Text(text)
     }
 }
 
@@ -219,8 +289,8 @@ val mockVM = object : MainVM {
         get() = MutableLiveData(false)
     override val children: LiveData<List<Child>>
         get() = MutableLiveData(listOf())
-    override val snackBar: LiveData<SnackbarMessage?>
-        get() = MutableLiveData(null)
+    override val eventsFlow: Flow<Event>
+        get() = TODO("Not yet implemented")
 
     override fun sendToSanta() {
         TODO("Not yet implemented")
@@ -241,5 +311,10 @@ val mockVM = object : MainVM {
     override fun updateRating(child: Child, rating: Float) {
         TODO("Not yet implemented")
     }
+
+    override fun dismissSnack() {
+        TODO("Not yet implemented")
+    }
+
 
 }
