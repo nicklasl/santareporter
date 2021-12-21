@@ -1,12 +1,10 @@
 package nu.nldv.santareporter
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -29,14 +27,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.flowWithLifecycle
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import nu.nldv.santareporter.ui.theme.SantaReporterTheme
 import nu.nldv.santareporter.ui.theme.Typography
-import java.util.logging.Logger
 
 class MainActivity : ComponentActivity() {
 
@@ -45,37 +39,26 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val uiStateFlowLifecycleAware = remember(vm.uiStateFlow, lifecycleOwner) {
+                vm.uiStateFlow.flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            }
+            val uiState = uiStateFlowLifecycleAware.collectAsState(initial = UiState.Normal)
 
             val scaffoldState = rememberScaffoldState()
 
-            val lifecycleOwner = LocalLifecycleOwner.current
 
-            val eventsFlowLifecycleAware = remember(vm.eventsFlow, lifecycleOwner) {
-                vm.eventsFlow.flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
-            }
-//            val snackbarHostState = remember { vm.snackbarHostState }
-            eventsFlowLifecycleAware.collectAsState(initial = Event.NoState)
-            LaunchedEffect(scaffoldState.snackbarHostState) {
-                eventsFlowLifecycleAware.collectAsState().onEach {
-                    when(it) {
-                        Event.CloseAddDialog -> Log.d("MainActivity", "eventsFlow: Event.CloseAddDialog")
-                        Event.DismissSnackbar -> TODO()
-                        Event.OpenAddDialog -> Log.d("MainActivity", "eventsFlow: Event.CloseAddDialog")
-                        is Event.ShowSnackbar -> ShowSnack(scaffoldState, it)
-                    }
-                }
-            }
 
             SantaReporterTheme {
+
                 Scaffold(
                     scaffoldState = scaffoldState,
-//                    snackbarHost = { state -> SnackyBarHost(state) },
                     floatingActionButton = { Fab(vm) },
                     floatingActionButtonPosition = FabPosition.End,
                     isFloatingActionButtonDocked = true,
                     bottomBar = { BottomBar(vm) }
                 ) {
-                    Surface() {
+                    Surface {
                         Background()
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -87,52 +70,33 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                        when (uiState.value) {
+                            UiState.Normal -> {
+                            }
+                            UiState.AddDialog -> AddChildDialog(vm)
+                            is UiState.ShowSnackbar -> {
+                                val scope = rememberCoroutineScope()
+                                val text: String =
+                                    when ((uiState.value as UiState.ShowSnackbar).msg) {
+                                        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
+                                        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
+                                    }
+                                val actionLabel = stringResource(id = R.string.ok)
+                                scope.launch {
+                                    scaffoldState.snackbarHostState.showSnackbar(
+                                        text,
+                                        actionLabel,
+                                        SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-}
-@Composable
-private fun ShowSnack(scaffoldState: ScaffoldState, event: Event.ShowSnackbar) {
-    val text: String = when (event.msg) {
-        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
-        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
-    }
-    val actionLabel = stringResource(id = R.string.ok)
-
-    scaffoldState.snackbarHostState.showSnackbar(text, actionLabel, SnackbarDuration.Short)
-}
-
-@Composable
-private fun SnackyBarHost(state: SnackbarHostState) {
-    SnackbarHost(state) { data ->
-        data
-        Snackbar(
-            modifier = Modifier.border(2.dp, MaterialTheme.colors.secondary),
-            snackbarData = data
-        )
-    }
-}
-
-@Composable
-private fun Snacky(modifier: Modifier, vm: MainVM, message: SnackbarMessage) {
-    val text: String = when (message) {
-        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
-        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
-    }
-
-    Snackbar(
-        modifier = modifier,
-        action = {
-            Button(onClick = { vm.dismissSnack() }) {
-                Text(stringResource(id = R.string.ok))
-            }
-        }
-    ) {
-        Text(text)
-    }
 }
 
 @Composable
@@ -180,7 +144,6 @@ private fun Fab(vm: MainVM) {
 @Composable
 private fun BottomBar(vm: MainVM) {
     BottomAppBar {
-        val openDialogState = vm.addDialogOpen.observeAsState()
 
         IconButton(onClick = { vm.addChildDialog() }) {
             Icon(
@@ -188,10 +151,6 @@ private fun BottomBar(vm: MainVM) {
                 contentDescription = "More",
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp),
             )
-        }
-
-        if (openDialogState.value == true) {
-            AddChildDialog(vm)
         }
     }
 }
@@ -285,11 +244,9 @@ fun DefaultPreview() {
 }
 
 val mockVM = object : MainVM {
-    override val addDialogOpen: LiveData<Boolean>
-        get() = MutableLiveData(false)
     override val children: LiveData<List<Child>>
         get() = MutableLiveData(listOf())
-    override val eventsFlow: Flow<Event>
+    override val uiStateFlow: Flow<UiState>
         get() = TODO("Not yet implemented")
 
     override fun sendToSanta() {

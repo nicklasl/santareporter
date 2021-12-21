@@ -3,8 +3,6 @@ package nu.nldv.santareporter
 import android.app.Application
 import android.content.Context.MODE_PRIVATE
 import android.util.Log
-import androidx.compose.material.SnackbarDuration
-import androidx.compose.material.SnackbarHostState
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -19,23 +17,21 @@ const val CHILDREN = "CHILDREN"
 
 interface MainVM {
 
-    val addDialogOpen: LiveData<Boolean>
+//    val addDialogOpen: LiveData<Boolean>
     val children: LiveData<List<Child>>
-//    val snackBar: LiveData<SnackbarMessage?>
     fun sendToSanta()
     fun addChildDialog()
     fun dismissAddDialog()
     fun saveAddDialog(name: String)
     fun updateRating(child: Child, rating: Float)
     fun dismissSnack()
-    val eventsFlow: Flow<Event>
+    val uiStateFlow: Flow<UiState>
 }
-sealed class Event {
-    object NoState: Event()
-    object OpenAddDialog: Event()
-    object CloseAddDialog: Event()
-    class ShowSnackbar(val msg: SnackbarMessage): Event()
-    object DismissSnackbar: Event()
+
+sealed class UiState {
+    object Normal : UiState()
+    object AddDialog : UiState()
+    class ShowSnackbar(val msg: SnackbarMessage) : UiState()
 }
 
 class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
@@ -45,19 +41,14 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
     }
 
 
-    private val eventChannel = Channel<Event>(Channel.BUFFERED)
-    override val eventsFlow: Flow<Event> = eventChannel.receiveAsFlow()
-
-//    private val _snackBar = MutableLiveData<SnackbarMessage?>()
-//    override val snackBar: LiveData<SnackbarMessage?> get() = _snackBar
+    private val uiStateChannel = Channel<UiState>(Channel.BUFFERED)
+    override val uiStateFlow: Flow<UiState> = uiStateChannel.receiveAsFlow()
 
     private val _children = MutableLiveData<List<Child>>(mutableListOf())
     override val children: LiveData<List<Child>> get() = _children
 
     private val _addDialogOpen = MutableLiveData(false)
-    override val addDialogOpen: LiveData<Boolean> get() = _addDialogOpen
-
-//    val snackbarHostState = SnackbarHostState()
+//    override val addDialogOpen: LiveData<Boolean> get() = _addDialogOpen
 
     init {
         load()
@@ -74,14 +65,14 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
     override fun dismissSnack() {
         Log.d("MainViewModel", "dismissSnack()")
         viewModelScope.launch {
-            eventChannel.send(Event.DismissSnackbar)
+            uiStateChannel.send(UiState.Normal)
         }
     }
 
     override fun addChildDialog() {
         Log.d("MainViewModel", "addChildDialog()")
         viewModelScope.launch {
-            eventChannel.send(Event.OpenAddDialog)
+            uiStateChannel.send(UiState.AddDialog)
         }
         _addDialogOpen.postValue(true)
     }
@@ -89,7 +80,7 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
     override fun dismissAddDialog() {
         Log.d("MainViewModel", "dismissAddDialog()")
         viewModelScope.launch {
-            eventChannel.send(Event.CloseAddDialog)
+            uiStateChannel.send(UiState.Normal)
         }
         _addDialogOpen.postValue(false)
     }
@@ -104,7 +95,7 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
             val newList = currentList.plus(newChild)
             _children.postValue(newList.sortedBy { it.name })
             viewModelScope.launch {
-                eventChannel.send(Event.CloseAddDialog)
+                uiStateChannel.send(UiState.Normal)
             }
             save(newList)
         }
@@ -128,18 +119,10 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
 
     private fun snack(msg: SnackbarMessage) {
         Log.d("MainViewModel", "snack() with $msg")
-//        val label = string(R.string.ok)
-//        val message = when (msg) {
-//            SnackbarMessage.Duplicate -> string(R.string.snack_duplicate)
-//            SnackbarMessage.Sent -> string(R.string.snack_report)
-//        }
         viewModelScope.launch {
-            eventChannel.send(Event.ShowSnackbar(msg))
-//            snackbarHostState.showSnackbar(message, label, SnackbarDuration.Short)
+            uiStateChannel.send(UiState.ShowSnackbar(msg))
         }
     }
-
-    private fun string(idRef: Int) = getApplication<SantaApp>().resources.getString(idRef)
 
     private fun save(list: List<Child>) {
         val serialized = list.map { it.serialized() }.toSet()
