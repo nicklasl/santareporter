@@ -4,7 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -15,7 +21,9 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +40,9 @@ import kotlinx.coroutines.launch
 import nu.nldv.santareporter.ui.theme.SantaReporterTheme
 import nu.nldv.santareporter.ui.theme.Typography
 
+const val SnackbarSlideOutTimeInMs = 700
+
+@ExperimentalAnimationApi
 class MainActivity : ComponentActivity() {
 
     private val vm: MainViewModel by viewModels()
@@ -46,8 +57,6 @@ class MainActivity : ComponentActivity() {
             val uiState = uiStateFlowLifecycleAware.collectAsState(initial = UiState.Normal)
 
             val scaffoldState = rememberScaffoldState()
-
-
 
             SantaReporterTheme {
 
@@ -90,6 +99,17 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+                            is UiState.Edit -> {
+                                var expanded by remember { mutableStateOf(false) }
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(onClick = { vm.remove((uiState.value as UiState.Edit).child) }) {
+                                        Text(stringResource(id = R.string.remove))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -101,7 +121,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun ChildRow(child: Child, vm: MainVM) {
-    Column(modifier = Modifier.padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp)) {
+    Column(modifier = Modifier
+        .padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp)
+        .pointerInput(Unit) {
+            detectTapGestures(onLongPress = { vm.longPress(child) })
+        }) {
         var sliderPosition by remember { mutableStateOf(child.rating.toFloat()) }
 
         Text(
@@ -130,21 +154,34 @@ private fun ChildRow(child: Child, vm: MainVM) {
     }
 }
 
+@ExperimentalAnimationApi
 @Composable
 private fun Fab(vm: MainVM) {
-    ExtendedFloatingActionButton(
-        text = { Text(stringResource(R.string.send_to_santa)) },
-        onClick = { vm.sendToSanta() },
-        icon = { Icon(Icons.Filled.Send, contentDescription = "Send") },
-        backgroundColor = Color.Red,
-        contentColor = Color.White
-    )
+    val density = LocalDensity.current
+    AnimatedVisibility(
+        visible = vm.dirty.observeAsState().value == true,
+        enter = fadeIn(
+            // Fade in with the initial alpha of 0.3f.
+            initialAlpha = 0.2f
+        ),
+        exit = slideOutHorizontally(
+            targetOffsetX = { with(density) { 220.dp.roundToPx() } },
+            animationSpec = tween(SnackbarSlideOutTimeInMs)
+        )
+    ) {
+        ExtendedFloatingActionButton(
+            text = { Text(stringResource(R.string.send_to_santa)) },
+            onClick = { vm.sendToSanta() },
+            icon = { Icon(Icons.Filled.Send, contentDescription = "Send") },
+            backgroundColor = Color.Red,
+            contentColor = Color.White
+        )
+    }
 }
 
 @Composable
 private fun BottomBar(vm: MainVM) {
     BottomAppBar {
-
         IconButton(onClick = { vm.addChildDialog() }) {
             Icon(
                 Icons.Filled.Add,
@@ -246,6 +283,8 @@ fun DefaultPreview() {
 val mockVM = object : MainVM {
     override val children: LiveData<List<Child>>
         get() = MutableLiveData(listOf())
+    override val dirty: LiveData<Boolean>
+        get() = MutableLiveData(false)
     override val uiStateFlow: Flow<UiState>
         get() = TODO("Not yet implemented")
 
@@ -273,5 +312,11 @@ val mockVM = object : MainVM {
         TODO("Not yet implemented")
     }
 
+    override fun longPress(child: Child) {
+        TODO("Not yet implemented")
+    }
 
+    override fun remove(child: Child) {
+        TODO("Not yet implemented")
+    }
 }
