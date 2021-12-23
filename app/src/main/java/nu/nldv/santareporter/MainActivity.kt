@@ -80,18 +80,16 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         when (uiState.value) {
-                            UiState.Normal -> {
-                            }
+                            UiState.Normal -> { }
                             UiState.AddDialog -> AddChildDialog(vm)
                             is UiState.ShowSnackbar -> {
-                                val scope = rememberCoroutineScope()
                                 val text: String =
                                     when ((uiState.value as UiState.ShowSnackbar).msg) {
                                         SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
                                         SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
                                     }
                                 val actionLabel = stringResource(id = R.string.ok)
-                                scope.launch {
+                                LaunchedEffect(scaffoldState.snackbarHostState) {
                                     scaffoldState.snackbarHostState.showSnackbar(
                                         text,
                                         actionLabel,

@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -45,7 +46,9 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
     }
 
     private val uiStateChannel = Channel<UiState>(Channel.BUFFERED)
-    override val uiStateFlow: Flow<UiState> = uiStateChannel.receiveAsFlow()
+    override val uiStateFlow: Flow<UiState> = uiStateChannel.receiveAsFlow().onEach {
+        Log.d("MainViewModel", "uiStateFlow emitting: $it")
+    }
 
     private val _dirty = MutableLiveData<Boolean>(false)
     override val dirty: LiveData<Boolean> get() = _dirty
