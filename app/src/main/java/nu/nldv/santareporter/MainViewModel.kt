@@ -69,7 +69,6 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
         viewModelScope.launch {
             delay(SnackbarSlideOutTimeInMs.toLong())
             snack(SnackbarMessage.Sent)
-            uiStateChannel.send(UiState.Normal)
         }
     }
 
