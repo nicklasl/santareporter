@@ -10,18 +10,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -36,7 +33,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.flowWithLifecycle
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
 import nu.nldv.santareporter.ui.theme.SantaReporterTheme
 import nu.nldv.santareporter.ui.theme.Typography
 
@@ -68,43 +64,49 @@ class MainActivity : ComponentActivity() {
                     bottomBar = { BottomBar(vm) }
                 ) {
                     Surface {
+                        val uiStateValue = uiState.value
                         Background()
                         Box(
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            Column(modifier = Modifier.align(Alignment.Center)) {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Heading()
                                 vm.children.observeAsState().value?.forEach {
-                                    ChildRow(it, vm)
-                                }
-                            }
-                        }
-                        when (uiState.value) {
-                            UiState.Normal -> { }
-                            UiState.AddDialog -> AddChildDialog(vm)
-                            is UiState.ShowSnackbar -> {
-                                val text: String =
-                                    when ((uiState.value as UiState.ShowSnackbar).msg) {
-                                        SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
-                                        SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
+                                    when (uiStateValue) {
+                                        is UiState.Edit -> EditChildRow(it, vm)
+                                        else -> ChildRow(it, vm)
                                     }
-                                val actionLabel = stringResource(id = R.string.ok)
-                                LaunchedEffect(scaffoldState.snackbarHostState) {
-                                    scaffoldState.snackbarHostState.showSnackbar(
-                                        text,
-                                        actionLabel,
-                                        SnackbarDuration.Short
-                                    )
                                 }
-                            }
-                            is UiState.Edit -> {
-                                var expanded by remember { mutableStateOf(false) }
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    DropdownMenuItem(onClick = { vm.remove((uiState.value as UiState.Edit).child) }) {
-                                        Text(stringResource(id = R.string.remove))
+
+                                when (uiStateValue) {
+                                    UiState.AddDialog -> AddChildDialog(vm)
+                                    is UiState.ShowSnackbar -> {
+                                        val text: String =
+                                            when ((uiStateValue as UiState.ShowSnackbar).msg) {
+                                                SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
+                                                SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
+                                            }
+                                        val actionLabel = stringResource(id = R.string.ok)
+                                        LaunchedEffect(scaffoldState.snackbarHostState) {
+                                            scaffoldState.snackbarHostState.showSnackbar(
+                                                text,
+                                                actionLabel,
+                                                SnackbarDuration.Short
+                                            )
+                                        }
+                                    }
+                                    UiState.Edit -> {
+                                        Button(
+                                            onClick = { vm.exitEdit() },
+                                            modifier = Modifier.padding(top = 20.dp)
+                                        ) {
+                                            Text(stringResource(id = R.string.dismiss))
+                                        }
+                                    }
+                                    else -> { /* no-op */
                                     }
                                 }
                             }
@@ -118,12 +120,35 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+private fun EditChildRow(child: Child, vm: MainVM) {
+    Row(
+        modifier = Modifier.padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val textState = remember { mutableStateOf(TextFieldValue(child.name)) }
+
+        OutlinedTextField(
+            value = textState.value,
+            placeholder = { Text(child.name) },
+            label = { Text(stringResource(id = R.string.name)) },
+            maxLines = 1,
+            onValueChange = { textState.value = it },
+        )
+        IconButton(onClick = { vm.remove(child) }) {
+            Icon(Icons.Filled.Delete, contentDescription = "Remove")
+        }
+        if (textState.value.text != child.name) {
+            val newName = textState.value.text
+            IconButton(onClick = { vm.saveName(child, newName) }) {
+                Icon(Icons.Filled.Check, contentDescription = "Save")
+            }
+        }
+    }
+}
+
+@Composable
 private fun ChildRow(child: Child, vm: MainVM) {
-    Column(modifier = Modifier
-        .padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp)
-        .pointerInput(Unit) {
-            detectTapGestures(onLongPress = { vm.longPress(child) })
-        }) {
+    Column(modifier = Modifier.padding(start = 21.dp, end = 21.dp, top = 21.dp, bottom = 8.dp)) {
         var sliderPosition by remember { mutableStateOf(child.rating.toFloat()) }
 
         Text(
@@ -159,7 +184,6 @@ private fun Fab(vm: MainVM) {
     AnimatedVisibility(
         visible = vm.dirty.observeAsState().value == true,
         enter = fadeIn(
-            // Fade in with the initial alpha of 0.3f.
             initialAlpha = 0.2f
         ),
         exit = slideOutHorizontally(
@@ -180,12 +204,22 @@ private fun Fab(vm: MainVM) {
 @Composable
 private fun BottomBar(vm: MainVM) {
     BottomAppBar {
+        val showEdit = vm.children.observeAsState().value?.isNotEmpty() == true
         IconButton(onClick = { vm.addChildDialog() }) {
             Icon(
                 Icons.Filled.Add,
                 contentDescription = "More",
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp),
             )
+        }
+        if (showEdit) {
+            IconButton(onClick = { vm.edit() }) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Edit",
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                )
+            }
         }
     }
 }
@@ -203,7 +237,6 @@ private fun AddChildDialog(vm: MainVM) {
         text = {
             Column {
                 Text(stringResource(id = R.string.add_child_description))
-
 
                 OutlinedTextField(
                     value = textState.value,
@@ -310,11 +343,19 @@ val mockVM = object : MainVM {
         TODO("Not yet implemented")
     }
 
-    override fun longPress(child: Child) {
+    override fun edit() {
         TODO("Not yet implemented")
     }
 
     override fun remove(child: Child) {
+        TODO("Not yet implemented")
+    }
+
+    override fun saveName(child: Child, newName: String) {
+        TODO("Not yet implemented")
+    }
+
+    override fun exitEdit() {
         TODO("Not yet implemented")
     }
 }

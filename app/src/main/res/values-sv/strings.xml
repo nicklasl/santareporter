@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tomte-Rapport</string>
-    <string name="send_to_santa">Skicka till Jultomten</string>
+    <string name="send_to_santa">Skicka till Tomten</string>
     <string name="add_child">Lägg till barn</string>
     <string name="add_child_description">Lägg till barnet som ska vara på tomtens lista.</string>
     <string name="dismiss">Avbryt</string>

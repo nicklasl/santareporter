@@ -18,6 +18,7 @@ const val SHARED_PREFS = "kids"
 const val CHILDREN = "CHILDREN"
 
 interface MainVM {
+    val uiStateFlow: Flow<UiState>
     val dirty: LiveData<Boolean>
     val children: LiveData<List<Child>>
     fun sendToSanta()
@@ -26,17 +27,17 @@ interface MainVM {
     fun saveAddDialog(name: String)
     fun updateRating(child: Child, rating: Float)
     fun dismissSnack()
-    fun longPress(child: Child)
+    fun edit()
     fun remove(child: Child)
-
-    val uiStateFlow: Flow<UiState>
+    fun saveName(child: Child, newName: String)
+    fun exitEdit()
 }
 
 sealed class UiState {
     object Normal : UiState()
     object AddDialog : UiState()
+    object Edit : UiState()
     class ShowSnackbar(val msg: SnackbarMessage) : UiState()
-    class Edit(val child: Child) : UiState()
 }
 
 class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
@@ -50,7 +51,7 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
         Log.d("MainViewModel", "uiStateFlow emitting: $it")
     }
 
-    private val _dirty = MutableLiveData<Boolean>(false)
+    private val _dirty = MutableLiveData(false)
     override val dirty: LiveData<Boolean> get() = _dirty
     private val _children = MutableLiveData<List<Child>>(mutableListOf())
     override val children: LiveData<List<Child>> get() = _children
@@ -68,6 +69,7 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
         viewModelScope.launch {
             delay(SnackbarSlideOutTimeInMs.toLong())
             snack(SnackbarMessage.Sent)
+            uiStateChannel.send(UiState.Normal)
         }
     }
 
@@ -78,10 +80,10 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
         }
     }
 
-    override fun longPress(child: Child) {
-        Log.d("MainViewModel", "longPress() with ${child.name}")
+    override fun edit() {
+        Log.d("MainViewModel", "edit()")
         viewModelScope.launch {
-            uiStateChannel.send(UiState.Edit(child))
+            uiStateChannel.send(UiState.Edit)
         }
     }
 
@@ -94,6 +96,24 @@ class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
 
     override fun dismissAddDialog() {
         Log.d("MainViewModel", "dismissAddDialog()")
+        viewModelScope.launch {
+            uiStateChannel.send(UiState.Normal)
+        }
+    }
+
+    override fun saveName(child: Child, newName: String) {
+        Log.d("MainViewModel", "saveName() with child=${child.name}, newName=$newName")
+        val currentList = children.value ?: listOf()
+        val newChild = child.copy(name = newName)
+        val newList = currentList.minus(child).plus(newChild)
+        _children.postValue(newList.sortedBy { it.name })
+        viewModelScope.launch {
+            uiStateChannel.send(UiState.Normal)
+        }
+        save(newList)
+    }
+
+    override fun exitEdit() {
         viewModelScope.launch {
             uiStateChannel.send(UiState.Normal)
         }
