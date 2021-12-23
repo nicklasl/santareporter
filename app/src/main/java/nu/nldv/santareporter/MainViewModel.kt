@@ -33,6 +33,7 @@ interface MainVM {
     fun exitEdit()
 }
 
+//TODO separate UI state from events! Snackbar/AddDialog is an event, Normal/Edit are states
 sealed class UiState {
     object Normal : UiState()
     object AddDialog : UiState()
