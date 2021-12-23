@@ -10,7 +10,7 @@
     <string name="naughty">😈 Naughty</string>
     <string name="nice">Nice 😇</string>
     <string name="snack_duplicate">Cannot add child with same name</string>
-    <string name="snack_report">Report has been sent to Santa</string>
+    <string name="snack_report">Report has been sent to Santa!</string>
     <string name="ok">Ok</string>
     <string name="remove">Remove</string>
 </resources>

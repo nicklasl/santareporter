@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tomte-Rapport</string>
+    <string name="send_to_santa">Skicka till Jultomten</string>
+    <string name="add_child">Lägg till barn</string>
+    <string name="add_child_description">Lägg till barnet som ska vara på tomtens lista.</string>
+    <string name="dismiss">Avbryt</string>
+    <string name="save">Spara</string>
+    <string name="add_child_hint">Namn</string>
+    <string name="name">Namn</string>
+    <string name="naughty">😈 Olydig</string>
+    <string name="nice">Snäll 😇</string>
+    <string name="snack_duplicate">Kan inte lägga till två barn med samma namn</string>
+    <string name="snack_report">Rapporten har skickats till Jultomten!</string>
+    <string name="ok">Ok</string>
+    <string name="remove">Ta bort</string>
+</resources>
