@@ -4,6 +4,5 @@ Santa reporter is a way for me to get a feel for Jetpack Compose. It should not 
 
 It's also a way to scare my kids who believe in Santa Claus that I'm sending updates to Santa about their behavior before Christmas.
 
-| Normal view | Adding a child |
-| ----------- | -------------- |
-| ![images/screen1.png] | ![images/screen2.png] |
+![Normal](images/screen1.png) 
+![Add child](images/screen2.png)
