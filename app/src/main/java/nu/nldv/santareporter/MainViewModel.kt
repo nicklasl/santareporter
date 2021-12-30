@@ -1,11 +1,10 @@
 package nu.nldv.santareporter
 
-import android.app.Application
-import android.content.Context.MODE_PRIVATE
+import android.content.SharedPreferences
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -41,11 +40,9 @@ sealed class UiState {
     class ShowSnackbar(val msg: SnackbarMessage) : UiState()
 }
 
-class MainViewModel(app: Application) : MainVM, AndroidViewModel(app) {
-
-    private val sharedPrefs by lazy {
-        (getApplication() as SantaApp).getSharedPreferences(SHARED_PREFS, MODE_PRIVATE)
-    }
+class MainViewModel(
+    private val sharedPrefs: SharedPreferences
+) : MainVM, ViewModel() {
 
     private val uiStateChannel = Channel<UiState>(Channel.BUFFERED)
     override val uiStateFlow: Flow<UiState> = uiStateChannel.receiveAsFlow().onEach {
