@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                                     UiState.AddDialog -> AddChildDialog(vm)
                                     is UiState.ShowSnackbar -> {
                                         val text: String =
-                                            when ((uiStateValue as UiState.ShowSnackbar).msg) {
+                                            when (uiStateValue.msg) {
                                                 SnackbarMessage.Duplicate -> stringResource(id = R.string.snack_duplicate)
                                                 SnackbarMessage.Sent -> stringResource(id = R.string.snack_report)
                                             }
