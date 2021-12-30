@@ -41,7 +41,10 @@ const val SnackbarSlideOutTimeInMs = 700
 @ExperimentalAnimationApi
 class MainActivity : ComponentActivity() {
 
-    private val vm: MainViewModel by viewModels()
+    private val vm: MainViewModel by viewModels {
+        val sharedPrefs = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE)
+        MainViewModel(sharedPrefs).createFactory()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
