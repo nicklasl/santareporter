@@ -1,7 +1,9 @@
 plugins {
-    id "com.android.application"
-    id "kotlin-android"
+    id("com.android.application")
+    id("kotlin-android")
 }
+
+val composeVersion: String by project
 
 android {
     compileSdk = 31
@@ -20,13 +22,13 @@ android {
     }
 
     signingConfigs {
-        release {
-            def tmpFilePath = System.getProperty("user.home") + "/work/_temp/keystore/"
-            def allFilesFromDir = new File(tmpFilePath).listFiles()
+        create("release") {
+            val tmpFilePath = System.getProperty("user.home") + "/work/_temp/keystore/"
+            val allFilesFromDir = File(tmpFilePath).listFiles()
 
             if (allFilesFromDir != null) {
-                def keystoreFile = allFilesFromDir.first()
-                keystoreFile.renameTo("keystore/your_keystore.jks")
+                val keystoreFile = allFilesFromDir.first()
+                keystoreFile.renameTo(File("keystore/your_keystore.jks"))
             }
 
             storeFile = file("keystore/your_keystore.jks")
@@ -37,13 +39,16 @@ android {
     }
 
     buildTypes {
-        release {
-            minifyEnabled = false
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        getByName("release") {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
-        debug {
+        getByName("debug") {
             applicationIdSuffix = ".debug"
-            debuggable = true
+            isDebuggable = true
         }
     }
     compileOptions {
@@ -52,7 +57,7 @@ android {
     }
     testOptions {
         unitTests {
-            unitTests.returnDefaultValues = true
+            isReturnDefaultValues = true
         }
     }
     kotlinOptions {
@@ -63,7 +68,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = compose_version
+        kotlinCompilerExtensionVersion = composeVersion
     }
     packagingOptions {
         resources {
@@ -78,9 +83,9 @@ dependencies {
     implementation("androidx.fragment:fragment-ktx:1.4.0")
     implementation("androidx.appcompat:appcompat:1.4.0")
     implementation("com.google.android.material:material:1.4.0")
-    implementation("androidx.compose.ui:ui:$compose_version")
-    implementation("androidx.compose.material:material:$compose_version")
-    implementation("androidx.compose.ui:ui-tooling-preview:$compose_version")
+    implementation("androidx.compose.ui:ui:$composeVersion")
+    implementation("androidx.compose.material:material:$composeVersion")
+    implementation("androidx.compose.ui:ui-tooling-preview:$composeVersion")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
     implementation("androidx.activity:activity-compose:1.4.0")
     testImplementation("junit:junit:4.13.2")
@@ -90,6 +95,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.0-RC")
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$compose_version")
-    debugImplementation("androidx.compose.ui:ui-tooling:$compose_version")
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$composeVersion")
+    debugImplementation("androidx.compose.ui:ui-tooling:$composeVersion")
 }
