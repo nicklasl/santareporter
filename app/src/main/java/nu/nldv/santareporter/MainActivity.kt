@@ -42,8 +42,7 @@ const val SnackbarSlideOutTimeInMs = 700
 class MainActivity : ComponentActivity() {
 
     private val vm: MainViewModel by viewModels {
-        val sharedPrefs = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE)
-        MainViewModel(sharedPrefs).createFactory()
+        MainViewModel(SantaApp.instance.storage).createFactory()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

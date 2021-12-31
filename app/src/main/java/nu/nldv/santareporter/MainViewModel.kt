@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import nu.nldv.santareporter.persistence.Storage
 
-const val SHARED_PREFS = "kids"
-const val CHILDREN = "CHILDREN"
 
 interface MainVM {
     val uiStateFlow: Flow<UiState>
@@ -41,7 +40,7 @@ sealed class UiState {
 }
 
 class MainViewModel(
-    private val sharedPrefs: SharedPreferences
+    private val storage: Storage
 ) : MainVM, ViewModel() {
 
     private val uiStateChannel = Channel<UiState>(Channel.BUFFERED)
@@ -169,14 +168,11 @@ class MainViewModel(
     }
 
     private fun save(list: List<Child>) {
-        val serialized = list.map { it.serialized() }.toSet()
-        sharedPrefs.edit().putStringSet(CHILDREN, serialized).apply()
+        storage.save(list)
     }
 
     private fun load() {
-        val list = sharedPrefs.getStringSet(CHILDREN, emptySet())
-            ?.map { Child.fromSerialized(it) }?.toList()
-            ?: listOf()
+        val list = storage.load()
         _children.postValue(list.sortedBy { it.name })
         _dirty.postValue(false)
     }

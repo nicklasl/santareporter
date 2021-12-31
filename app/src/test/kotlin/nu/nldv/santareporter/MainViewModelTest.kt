@@ -1,11 +1,10 @@
 package nu.nldv.santareporter
 
-import android.content.SharedPreferences
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.After
+import nu.nldv.santareporter.persistence.StorageFake
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
@@ -15,23 +14,18 @@ import org.junit.Test
 class MainViewModelTest {
 
     private lateinit var vm: MainViewModel
-    private lateinit var prefs: SharedPreferences
+    private lateinit var storageFake: StorageFake
 
     @get:Rule
     val coroutinesTestRule = CoroutinesTestRule()
+
     @get:Rule
     val testInstantTaskExecutorRule = InstantTaskExecutorRule()
 
     @Before
     fun setUp() {
-        prefs = PrefsFake()
-        prefs.edit().putStringSet(CHILDREN, testData).commit()
-        vm = MainViewModel(prefs)
-    }
-
-    @After
-    fun cleanUp() {
-        prefs.edit().clear().commit()
+        storageFake = StorageFake(testData.toMutableList())
+        vm = MainViewModel(storageFake)
     }
 
     @Test
@@ -110,12 +104,10 @@ class MainViewModelTest {
     }
 
     @Test
-    fun saveAddDialogShouldStoreInSharedPrefs() = runTest {
+    fun saveAddDialogShouldStoreInStorage() = runTest {
         vm.saveAddDialog("NewChild")
-        val stringSet = prefs.getStringSet(CHILDREN, emptySet())
-        assertNotNull(stringSet)
-        assertEquals(4, stringSet?.size)
-        assertTrue(stringSet?.any { it == "NewChild||50" } == true)
+        assertEquals(4, storageFake.load().size)
+        assertTrue(storageFake.load().any { it.name == "NewChild" && it.rating == 50 })
     }
 
     @Test
@@ -170,15 +162,13 @@ class MainViewModelTest {
     }
 
     @Test
-    fun saveNameShouldUpdateSharedPrefs() = runTest {
+    fun saveNameShouldUpdateStorage() = runTest {
         val child = vm.children.value!!.first()
         val ratingBefore = child.rating
         vm.saveName(child, "Luke")
 
-        val stringSet = prefs.getStringSet(CHILDREN, emptySet())
-        assertNotNull(stringSet)
-        assertEquals(3, stringSet?.size)
-        assertTrue(stringSet?.any { it == "Luke||$ratingBefore" } == true)
+        assertEquals(3, storageFake.load().size)
+        assertTrue(storageFake.load().any { it.name == "Luke" && it.rating == ratingBefore })
     }
 
     @Test
@@ -193,19 +183,17 @@ class MainViewModelTest {
     }
 
     @Test
-    fun removeShouldUpdateSharedPrefs() = runTest {
+    fun removeShouldUpdateStorage() = runTest {
         val child = vm.children.value!!.first()
         vm.remove(child)
 
-        val stringSet = prefs.getStringSet(CHILDREN, emptySet())
-        assertNotNull(stringSet)
-        assertEquals(2, stringSet?.size)
-        assertTrue(stringSet!!.none { it.contains(child.name) })
+        assertEquals(2, storageFake.load().size)
+        assertTrue(storageFake.load().none { it.name == child.name })
     }
 
     private val testData = listOf(
-        "A||99",
-        "B||1",
-        "C||50",
-    ).toSet()
+        Child("A", 99),
+        Child("B", 1),
+        Child("C", 50),
+    )
 }
