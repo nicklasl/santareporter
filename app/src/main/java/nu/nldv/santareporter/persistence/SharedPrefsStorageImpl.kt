@@ -3,8 +3,11 @@ package nu.nldv.santareporter.persistence
 import android.content.SharedPreferences
 import nu.nldv.santareporter.CHILDREN
 import nu.nldv.santareporter.Child
+import javax.inject.Inject
 
-class SharedPrefsStorageImpl(private val sharedPrefs: SharedPreferences) : Storage {
+
+class SharedPrefsStorageImpl @Inject constructor(private val sharedPrefs: SharedPreferences) :
+    Storage {
 
     override fun save(list: List<Child>) = with(list.map { it.serialized() }) {
         sharedPrefs.edit().putStringSet(CHILDREN, this.toSet()).apply()

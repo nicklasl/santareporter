@@ -32,18 +32,18 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.flowWithLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.Flow
 import nu.nldv.santareporter.ui.theme.SantaReporterTheme
 import nu.nldv.santareporter.ui.theme.Typography
 
 const val SnackbarSlideOutTimeInMs = 700
 
+@AndroidEntryPoint
 @ExperimentalAnimationApi
 class MainActivity : ComponentActivity() {
 
-    private val vm: MainViewModel by viewModels {
-        MainViewModel(SantaApp.instance.storage).createFactory()
-    }
+    private val vm: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
