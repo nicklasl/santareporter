@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    kotlin("kapt")
+    id("dagger.hilt.android.plugin")
 }
 
 val composeVersion: String by project
@@ -78,6 +80,9 @@ android {
 }
 
 dependencies {
+    implementation("com.google.dagger:hilt-android:2.38.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.38.1")
+
     implementation("androidx.compose.runtime:runtime-livedata:1.0.5")
     implementation("androidx.core:core-ktx:1.7.0")
     implementation("androidx.fragment:fragment-ktx:1.4.0")
@@ -97,4 +102,9 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:$composeVersion")
     debugImplementation("androidx.compose.ui:ui-tooling:$composeVersion")
+}
+
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }

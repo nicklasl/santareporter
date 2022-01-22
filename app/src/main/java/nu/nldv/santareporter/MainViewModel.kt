@@ -1,11 +1,11 @@
 package nu.nldv.santareporter
 
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import nu.nldv.santareporter.persistence.Storage
+import javax.inject.Inject
 
 
 interface MainVM {
@@ -39,7 +40,8 @@ sealed class UiState {
     class ShowSnackbar(val msg: SnackbarMessage) : UiState()
 }
 
-class MainViewModel(
+@HiltViewModel
+class MainViewModel @Inject constructor(
     private val storage: Storage
 ) : MainVM, ViewModel() {
 
