@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     isFloatingActionButtonDocked = true,
                     bottomBar = { BottomBar(vm) }
                 ) {
-                    Surface {
+                    Surface(modifier = Modifier.padding(it)) {
                         val uiStateValue = uiState.value
                         Background()
                         Box(
